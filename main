@@ -1,0 +1,803 @@
+
+DATAS SEGMENT
+    year DW 0
+    month DB 0
+    day DB 0
+    RUN DB 0
+    today DB 'Today is:$'  
+      year_output DB 'Year: $'
+    month_output DB 'Month: $'
+    day_output DB 'Day: $'
+    year_diff DW 0
+    monday_str    DB 'Monday$'        
+    tuesday_str   DB 'Tuesday$'      
+    wednesday_str DB 'Wednesday$'     
+    thursday_str  DB 'Thursday$'     
+    friday_str    DB 'Friday$'      
+    saturday_str  DB 'Saturday$'      
+    sunday_str    DB 'Sunday$'        
+ 	year_remainders DW 1, 1, 2, 1, 1, 1, 2, 1, 1, 1, 2,  ; 1990-2000
+                    1, 1, 1, 2, 1, 1, 1, 2, 1, 1,      ; 2001-2010
+                    2, 1, 1, 1, 2, 1, 1, 1, 2,          ; 2011-2020
+                    1, 1, 1, 2, 1, 1                   ; 2021-2026
+    year_input DB 'The four-digit year you entered is:$'
+    month_input DB 'The two-digit month you entered is: $'
+    day_input DB 'The two-digit day you entered is: $'
+    feedback DB 'The day of the week for the current date is: $'
+    error DB 'your input is wrong $'
+    huiche DB 13,10,'$';这些是提示字符串提示用户输入的，并且将检查输入的准确性
+DATAS ENDS
+
+STACKS SEGMENT
+    ;此处输入堆栈段代码
+STACKS ENDS
+
+CODES SEGMENT
+    ASSUME CS:CODES,DS:DATAS,SS:STACKS
+START:
+    MOV AX,DATAS
+    MOV DS,AX
+    LEA DX,year_input
+    MOV AH, 09H
+    INT 21H
+    MOV CX, 4  ;4 
+    MOV BX, 0  ; 用于存储输入的年份
+    MOV DX,0
+y_input:
+	MOV AH, 1
+    INT 21H;将输入存在AL
+    SUB AL ,'0';减掉‘0’
+    CMP AL, 9
+    JG feifa_input;非法输入
+    CMP AL,0
+    JB feifa_input
+    MOV BX,AX;保存刚才输入的一位数字
+    MOV AX,DX;将DX就是目前的year的值存入
+    MOV DX,10;乘法
+    MUL DX
+    MOV BH,0
+    ADD AX,BX;将数字*10+当前数
+    MOV DX,AX
+    loop y_input
+    MOV year,DX
+    MOV DX,year;将year的值保存
+    MOV AX, year       ; 将年份值加载到AX
+    MOV BX, 1990       ; BX = 1990
+    SUB AX, BX         ; AX = year - 1990
+    MOV year_diff, AX  ; 将差值存储到临时变量year_diff
+    
+    LEA DX,huiche;进入月份部分
+    MOV AH, 09H
+    INT 21H
+    LEA DX,month_input
+    MOV AH, 09H
+    INT 21H
+    
+    MOV CX, 2  ;两位月份 
+    MOV BX, 0  ; 用于存储输入的年份
+    MOV DX,0
+m_input:
+	MOV AH, 1
+    INT 21H;将输入存在AL
+    SUB AL ,'0';
+    CMP AL, 9
+    JG feifa_input
+    CMP AL,0
+    JB feifa_input
+    MOV BX,AX;同刚才的逻辑，就是*10+原来数
+    MOV AX,DX
+    MOV DX,10
+    MUL DX
+    MOV BH,0
+    ADD AX,BX
+    MOV DX,AX
+    loop m_input
+    MOV month,dl
+    cmp month,12;如果输入的数字是大于12非法
+    JG feifa_input
+    MOV Dl,month
+    mov dh,0
+ 
+    LEA DX,huiche
+    MOV AH, 09H
+    INT 21H
+    
+ 
+    LEA DX,day_input
+    MOV AH, 09H
+    INT 21H
+    MOV CX, 2  ;
+    MOV BX, 0  ; 用于存储输入的年份
+    MOV DX,0  
+d_input:
+	MOV AH, 1
+    INT 21H;将输入存在AL
+    SUB AL ,'0';
+    CMP AL, 9
+    JG feifa_input
+    CMP AL,0
+    JB feifa_input
+    MOV BX,AX
+    MOV AX,DX
+    MOV DX,10
+    MUL DX
+    MOV BH,0
+    ADD AX,BX
+    MOV DX,AX
+    loop d_input
+    mov day,dl;先不做检查，判断月份和闰年之后再做检查
+    
+    mov dl,day
+    mov dh,0
+    
+    LEA DX,huiche
+    MOV AH, 09H
+    INT 21H
+    
+
+    MOV DX,year
+    CALL is_leap_year;判断是否闰年，是就AL=1，不然0
+	;mov dl,al
+	;mov dh,0
+	;call print_dx_as_four_digits
+    mov bl,month
+    CMP BL, 1           ; 检查是否为1月
+    JE JAN
+    
+    CMP BL, 2          
+    JE FEB
+    
+    CMP BL, 3           
+    JE MAR
+    
+    CMP BL, 4          
+    JE APR
+    
+    CMP BL, 5           
+    JE MAY
+    
+    CMP BL, 6           
+    JE JUN
+    
+    CMP BL, 7          
+    JE JUL
+    
+    CMP BL, 8          
+    JE AUG
+    
+    CMP BL, 9         
+    JE SEP
+    
+    CMP BL, 10      
+    JE OCT
+    
+    CMP BL, 11        
+    JE NOV
+    
+    CMP BL, 12       
+    JE DECE
+    
+last:
+	;CALL print_week
+    MOV AH,4CH
+    INT 21H
+    
+
+print_dx_as_four_digits:   ;输出四位数字        
+    mov cx, 4         
+    mov bx, 10          
+
+; 生成四位数字
+generate_digits:
+    xor ax, ax          
+    mov ax, dx         
+    xor dx, dx          
+    div bx              ; AX / 10  商在 AX，余数在 DX
+    add dl, '0'         ; 将余数转换压入栈
+    push dx            
+    mov dx, ax          ; 将商放回 DX
+    loop generate_digits
+
+; 依次输出栈中的四位数字
+mov cx,4
+print_loop:
+    pop dx              
+    mov ah, 02h         ; 显示字符
+    int 21h             
+    loop print_loop     
+
+    ret
+    
+print:  ;用于输出2位字符的        
+    mov cx, 2       ; 
+    mov bx, 10          ; 除数（用于分解每一位）
+
+gg:
+    xor ax, ax          ;两位字符输出
+    mov ax, dx          
+    xor dx, dx          
+    div bx             
+    add dl, '0'        
+    push dx             
+    mov dx, ax         
+    loop gg
+
+
+mov cx,2
+pr:
+    pop dx             
+    mov ah, 02h       
+    int 21h            
+    loop pr    
+
+    ret
+
+;闰年的核心逻辑是被4整除不被100整除的是闰年
+;被100整除但是不能被400整除的是闰年
+is_leap_year:
+    xor dx, dx     
+    mov ax, year     ; AX = 年份
+    mov bx, 4
+    div bx         ; AX / 4  商在AX，余数在DX
+    test dx, dx    ; 余数为0吗和and一样
+    jnz not_leap  ; 不能被4整除，不是闰年
+    
+    ; 能被100整除？
+    xor dx, dx
+    mov AX, year ; 重新加载年份
+    mov bx, 100
+    div bx
+    test dx, dx    ; 余数为0？
+    jz check_400  ; 能被100整除，继续检查400
+    
+    ; 能被4整除但不能被100整除 闰年
+    mov al, 1
+    jmp exit
+    
+check_400:
+    ; 能被400整除？
+    xor dx, dx
+ 	mov AX, year ; 重新加载年份
+    mov bx, 400
+    div bx
+    test dx, dx    ; 余数为0？
+    jz leap       ; 能被400整除  闰年
+    
+not_leap:
+    mov al, 0      ; 不是闰年
+    jmp exit
+leap:
+;call print_dx_as_four_digits
+    mov al, 1      ; 是闰年这个是用于天数加一的
+    MOV RUN,1
+exit:
+    ret
+feifa_input:
+	LEA DX,error
+    MOV AH, 09H
+    INT 21H
+    MOV AH,4CH
+    INT 21H
+    
+JAN:;;一月这样子是对的
+	mov cx,ax
+	cmp day,31;检查刚才输入的天数是否正确
+	ja feifa_input
+	mov ax,cx
+	MOV DX,0
+	ADD DL,day;我们最后是在DL计算星期数，DL是总天数
+	mov cx,31
+	mov dx,1
+rili:
+	push dx
+	push cx
+	call print
+	pop cx
+	pop dx
+	push cx
+	push dx
+	call print_week
+	pop dx
+	inc dx
+	pop cx
+	loop rili
+    JMP last
+FEB:
+mov cx,ax
+	cmp day,31;检查刚才输入的天数是否正确
+	ja feifa_input
+	mov ax,cx
+	MOV DX,0
+	ADD DL,day;我们最后是在DL计算星期数，DL是总天数
+	mov cx,28
+	add cl,al
+	mov dx,32
+rili1:
+	push dx
+	push cx
+	sub dx,31
+	sub bl,al
+	call print
+	pop cx
+	pop dx
+	push cx
+	push dx
+	call print_week
+	pop dx
+	inc dx
+	;push dx
+	;mov dx,offset huiche
+	;MOV AH, 09H
+    ;INT 21H
+    ;pop dx
+	pop cx
+	loop rili1
+    JMP last
+MAR: ; 3月
+	mov cx,ax
+	cmp day,31;检查刚才输入的天数是否正确
+	ja feifa_input
+	mov ax,cx
+	MOV DX,0
+	ADD DL,day;我们最后是在DL计算星期数，DL是总天数
+	mov cx,31
+	mov dx,60
+		MOV AL,RUN
+	SUB DL,AL
+rili2:
+	push dx
+	push cx
+	sub dx,59
+	MOV AL,RUN
+	sub dL,AL
+	;sub dl,al
+	call print
+	pop cx
+	pop dx
+	push cx
+	push dx
+	call print_week
+	pop dx
+	inc dx
+	;push dx
+	;mov dx,offset huiche
+	;;MOV AH, 09H
+    ;INT 21H
+    ;pop dx
+	pop cx
+	loop rili2
+	mov dx,0
+	add dx,59
+	ADD DL,day
+	push dx
+	mov dx,offset today
+	MOV AH, 09H
+    INT 21H
+    pop dx
+    call print_week
+    JMP last
+APR: 	
+	mov cx,ax
+	cmp day,31;检查刚才输入的天数是否正确
+	ja feifa_input
+	mov ax,cx
+	MOV DX,0
+	ADD DL,day;我们最后是在DL计算星期数，DL是总天数
+	mov cx,30
+	mov dx,91
+		MOV AL,RUN
+	SUB DL,AL
+rili3:
+	push dx
+	push cx
+	sub dx,90
+		MOV AL,RUN
+	sub dL,AL
+	;sub dl,al
+	call print
+	pop cx
+	pop dx
+	push cx
+	push dx
+	call print_week
+	pop dx
+	inc dx
+	pop cx
+	loop rili3
+		mov dx,0
+	add dx,90
+	ADD DL,day
+	push dx
+	mov dx,offset today
+	MOV AH, 09H
+    INT 21H
+    pop dx
+    call print_week
+    JMP last
+MAY:
+	mov cx,ax
+	cmp day,31;检查刚才输入的天数是否正确
+	ja feifa_input
+	mov ax,cx
+	MOV DX,0
+	ADD DL,day;我们最后是在DL计算星期数，DL是总天数
+	mov cx,31
+	mov dx,121
+		MOV AL,RUN
+	SUB DL,AL
+rili4:
+	push dx
+	push cx
+	sub dx,120
+		MOV AL,RUN
+	sub dL,AL
+	;sub dl,al
+	call print
+	pop cx
+	pop dx
+	push cx
+	push dx
+	call print_week
+	pop dx
+	inc dx
+	pop cx
+	loop rili3
+		mov dx,0
+	add dx,120
+	ADD DL,day
+	push dx
+	mov dx,offset today
+	MOV AH, 09H
+    INT 21H
+    pop dx
+    call print_week
+    JMP last
+JUN: 
+	mov cx,ax
+	cmp day,31;检查刚才输入的天数是否正确
+	ja feifa_input
+	mov ax,cx
+	MOV DX,0
+	ADD DL,day;我们最后是在DL计算星期数，DL是总天数
+	mov cx,30
+	mov dx,152
+		MOV AL,RUN
+	SUB DL,AL
+rili5:
+	push dx
+	push cx
+	sub dx,151
+		MOV AL,RUN
+	sub dL,AL
+	;sub dl,al
+	call print
+	pop cx
+	pop dx
+	push cx
+	push dx
+	call print_week
+	pop dx
+	inc dx
+	pop cx
+	loop rili5
+		mov dx,0
+	add dx,151
+	ADD DL,day
+	push dx
+	mov dx,offset today
+	MOV AH, 09H
+    INT 21H
+    pop dx
+    call print_week
+    JMP last
+JUL:
+		mov cx,ax
+	cmp day,31;检查刚才输入的天数是否正确
+	ja feifa_input
+	mov ax,cx
+	MOV DX,0
+	ADD DL,day;我们最后是在DL计算星期数，DL是总天数
+	mov cx,31
+	mov dx,182
+		MOV AL,RUN
+	SUB DL,AL
+rili6:
+	push dx
+	push cx
+	sub dx,181
+		MOV AL,RUN
+	sub dL,AL
+	;sub dl,al
+	call print
+	pop cx
+	pop dx
+	push cx
+	push dx
+	call print_week
+	pop dx
+	inc dx
+	pop cx
+	loop rili6
+		mov dx,0
+	add dx,180
+	ADD DL,day
+	push dx
+	mov dx,offset today
+	MOV AH, 09H
+    INT 21H
+    pop dx
+    call print_week
+    JMP last
+AUG: 
+	mov cx,ax
+	cmp day,31;检查刚才输入的天数是否正确
+	ja feifa_input
+	mov ax,cx
+	MOV DX,0
+	ADD DL,day;我们最后是在DL计算星期数，DL是总天数
+	mov cx,31
+	mov dx,213
+		MOV AL,RUN
+	SUB DL,AL
+rili7:
+	push dx
+	push cx
+	sub dx,212
+		MOV AL,RUN
+	sub dL,AL
+	;sub dl,al
+	call print
+	pop cx
+	pop dx
+	push cx
+	push dx
+	call print_week
+	pop dx
+	inc dx
+	pop cx
+	loop rili7
+		mov dx,0
+	add dx,212
+	ADD DL,day
+	push dx
+	mov dx,offset today
+	MOV AH, 09H
+    INT 21H
+    pop dx
+    call print_week
+    JMP last
+SEP:
+	mov cx,ax
+	cmp day,31;检查刚才输入的天数是否正确
+	ja feifa_input
+	mov ax,cx
+	MOV DX,0
+	ADD DL,day;我们最后是在DL计算星期数，DL是总天数
+	mov cx,30
+	mov dx,244
+		MOV AL,RUN
+	SUB DL,AL
+rili8:
+	push dx
+	push cx
+	sub dx,243
+		MOV AL,RUN
+	sub dL,AL
+	;sub dl,al
+	call print
+	pop cx
+	pop dx
+	push cx
+	push dx
+	call print_week
+	pop dx
+	inc dx
+	pop cx
+	loop rili8
+		mov dx,0
+	add dx,243
+	ADD DL,day
+	push dx
+	mov dx,offset today
+	MOV AH, 09H
+    INT 21H
+    pop dx
+    call print_week
+    JMP last
+OCT: 
+		mov cx,ax
+	cmp day,31;检查刚才输入的天数是否正确
+	ja feifa_input
+	mov ax,cx
+	MOV DX,0
+	ADD DL,day;我们最后是在DL计算星期数，DL是总天数
+	mov cx,31
+	mov dx,274
+		MOV AL,RUN
+	SUB DL,AL
+rili9:
+	push dx
+	push cx
+	sub dx,273
+		MOV AL,RUN
+	sub dL,AL
+	;sub dl,al
+	call print
+	pop cx
+	pop dx
+	push cx
+	push dx
+	call print_week
+	pop dx
+	inc dx
+	pop cx
+	loop rili9
+		mov dx,0
+	add dx,273
+	ADD DL,day
+	push dx
+	mov dx,offset today
+	MOV AH, 09H
+    INT 21H
+    pop dx
+    call print_week
+    JMP last
+NOV:mov cx,ax
+	cmp day,31;检查刚才输入的天数是否正确
+	ja feifa_input
+	mov ax,cx
+	MOV DX,0
+	ADD DL,day;我们最后是在DL计算星期数，DL是总天数
+	mov cx,30
+	mov dx,305
+		MOV AL,RUN
+	SUB DL,AL
+rili10:
+	push dx
+	push cx
+	sub dx,304
+		MOV AL,RUN
+	sub dL,AL
+	;sub dl,al
+	call print
+	pop cx
+	pop dx
+	push cx
+	push dx
+	call print_week
+	pop dx
+	inc dx
+	pop cx
+	loop rili10
+	mov dx,0
+	add dx,304
+	ADD DL,day
+	push dx
+	mov dx,offset today
+	MOV AH, 09H
+    INT 21H
+    pop dx
+    call print_week
+    JMP last
+DECE: 
+	mov cx,ax
+	cmp day,31;检查刚才输入的天数是否正确
+	ja feifa_input
+	mov ax,cx
+	MOV DX,0
+	ADD DL,day;我们最后是在DL计算星期数，DL是总天数
+	mov cx,31
+	mov dx,335
+	MOV AL,RUN
+	SUB DL,AL
+rili11:
+	push dx
+	push cx
+	sub dx,334
+	MOV AL,RUN
+	sub dL,AL
+	call print
+	pop cx
+	pop dx
+	push cx
+	push dx
+	call print_week
+	pop dx
+	inc dx
+	pop cx
+	loop rili11
+		mov dx,0
+	add dx,334
+	ADD DL,day
+	push dx
+	mov dx,offset today
+	MOV AH, 09H
+    INT 21H
+    pop dx
+    call print_week
+    JMP last
+print_week:
+	push cx
+	MOV AX,0
+    ADD AX, DX      ; 加载总天数
+    MOV CX, year_diff     ; CX = 循环次数
+    
+    ; 初始化数组指针
+    LEA SI, year_remainders  ; 
+    
+add_loop:
+    MOV BX, [SI]    ; 加载当前年份的余数 
+    ADD AX, BX      ; 累加到AX
+    INC SI
+    INC SI
+    LOOP add_loop   ; 循环直到CX=0
+    MOV BL, 7       ; 一周7天
+    DIV BL          
+    MOV DL, AH      
+    CMP DL, 0       ; 检查余数是否为0（星期日）
+    JNE skip       ;1-6输出，0要+7
+    MOV DL, 7       
+skip:
+    MOV DH, 0       
+ CMP DL, 1
+    JE print_monday
+    CMP DL, 2
+    JE print_tuesday
+    CMP DL, 3
+    JE print_wednesday
+    CMP DL, 4
+    
+    JE print_thursday
+    CMP DL, 5
+    JE print_friday
+    CMP DL, 6
+    JE print_saturday
+    CMP DL, 7
+    JE print_sunday  
+    RET  
+        
+print_monday:
+    LEA DX, monday_str
+    JMP print_weekday
+print_tuesday:
+    LEA DX, tuesday_str
+    JMP print_weekday
+print_wednesday:
+    LEA DX, wednesday_str
+    JMP print_weekday
+print_thursday:
+    LEA DX, thursday_str
+    JMP print_weekday
+print_friday:
+    LEA DX, friday_str
+    JMP print_weekday
+print_saturday:
+    LEA DX, saturday_str
+    JMP print_weekday
+print_sunday:
+    LEA DX, sunday_str
+    JMP print_weekday
+print_weekday:
+	pop cx
+    MOV AH, 09H    
+    INT 21H 
+    push cx
+    push ax
+    push dx
+    push bx
+    mov ax,cx
+    mov bl,7
+    div bl
+    cmp ah,6
+    jne jixu
+    mov dx,offset huiche
+    MOV AH, 09H    
+    INT 21H 
+jixu:
+	pop bx
+    pop dx
+    pop ax
+    pop cx
+    ret  
+CODES ENDS
+    END START
